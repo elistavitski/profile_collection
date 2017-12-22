@@ -60,7 +60,7 @@ def tscan_plan(name:str, comment:str, prepare_traj:bool=True, n_cycles:int=1, de
         uid = db[-1]['start']['uid']
         uids.append(uid)
 			
-        yield from bp.sleep(float(delay))
+        yield from bps.sleep(float(delay))
     print('Done!')
     return uids
 
