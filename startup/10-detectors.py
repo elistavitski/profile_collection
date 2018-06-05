@@ -228,6 +228,13 @@ class EncoderFS(Encoder):
         else:
             print('Collect {}: File was not created'.format(self.name))
 
+    def pause(self):
+        # safe pause from suspend
+        if self._ready_to_collect():
+            self.complete()
+            self.collect()
+        self.unstage()
+
     def describe_collect(self):
         # TODO Return correct shape (array dims)
         now = ttime.time()
@@ -338,6 +345,15 @@ class DIFS(DigitalInput):
         #while not os.path.isfile(self._full_path):
         #    ttime.sleep(.1)
         return NullStatus()
+
+    def pause(self):
+        # safe pause from suspend
+        print("pausing")
+        if self._ready_to_collect():
+            self.complete()
+            self.collect()
+        self.unstage()
+
 
     def collect(self):
         """
@@ -582,6 +598,13 @@ class AdcFS(Adc):
             print('Collect of {} complete'.format(self.name))
         else:
             print('collect {}: File was not created'.format(self.name))
+
+    def pause(self):
+        # safe pause from suspend
+        if self._ready_to_collect():
+            self.complete()
+            self.collect()
+        self.unstage()
 
     def describe_collect(self):
         # TODO Return correct shape (array dims)

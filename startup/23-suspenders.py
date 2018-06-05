@@ -6,14 +6,14 @@ from bluesky.suspenders import (SuspendBoolHigh,
                                 SuspendInBand, SuspendOutBand)
 
 
-fe_shut_suspender = SuspendBoolHigh(shutter_fe.state, sleep=10*60)
-ph_shut_suspender = SuspendBoolHigh(shutter_ph.state, sleep=10*60)
+fe_shut_suspender = SuspendBoolHigh(shutter_fe.state, sleep=1)#10*60)
+ph_shut_suspender = SuspendBoolHigh(shutter_ph.state, sleep=1)#2*60)
 
 
 # suspender for beamline current is mA
 beam_current_suspender = SuspendFloor(nsls_ii.beam_current,
-                                      suspend_thresh = 300, sleep = 10*60)
-suspenders = [fe_shut_suspender,
+                                      suspend_thresh = 300, sleep = 1)#10*60)
+suspenders = [#fe_shut_suspender,
               ph_shut_suspender,
               beam_current_suspender,
               ]

@@ -324,7 +324,7 @@ def prep_traj_plan(delay = 0.1):
         yield from bps.mv(hhm.energy, curr_energy)
 
 
-def execute_trajectory(name, **metadata):
+def execute_trajectory(name, ignore_shutter=False, **metadata):
     ''' Execute a trajectory on the flyers given:
             flyers : list of flyers to fly on
         scans on 'mono1' by default
@@ -358,10 +358,12 @@ def execute_trajectory(name, **metadata):
             if hasattr(flyer, 'offset'):
                 md['{} offset'.format(flyer.name)] = flyer.offset.value
         md.update(**metadata)
+        yield from bps.checkpoint()
         yield from bps.open_run(md=md)
 
         # TODO Replace this with actual status object logic.
-        yield from bps.clear_checkpoint()
+        # Julien : Why was checkpoint cleared?
+        #yield from bps.clear_checkpoint()
         yield from shutter.open_plan()
         #yield from xia1.start_trigger()
         # this must be a float
@@ -416,10 +418,9 @@ def execute_trajectory(name, **metadata):
     yield from bps.stage(hhm)
     fly_plan = bpp.fly_during_wrapper(bpp.finalize_wrapper(inner(), final_plan()),
                                               flyers)
-    # TODO : Add in when suspend_wrapper is avaialable
-    #if not ignore_shutter:
+    if not ignore_shutter:
         # this will use suspenders defined in 23-suspenders.py
-        #fly_plan = bpp.suspend_wrapper(fly_plan, suspenders)
+        fly_plan = bpp.suspend_wrapper(fly_plan, suspenders)
 
     yield from fly_plan
 

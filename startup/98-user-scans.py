@@ -28,6 +28,7 @@ def tscan(name:str, comment:str, n_cycles:int=1, delay:float=0, **kwargs):
     --------
     :func:`tscanxia`
     """
+    ignore_shutter = kwargs.pop('ignore_shutter', False)
     sys.stdout = kwargs.pop('stdout', sys.stdout)
 
     #uids = []
@@ -41,7 +42,7 @@ def tscan(name:str, comment:str, n_cycles:int=1, delay:float=0, **kwargs):
             name_n = name + ' ' + str(indx + 1)
         print('Current step: {} / {}'.format(indx + 1, n_cycles))
         RE(prep_traj_plan())
-        uid = RE(execute_trajectory(name_n, comment=comment))
+        uid = RE(execute_trajectory(name_n, comment=comment, ignore_shutter=ignore_shutter))
         yield uid
         #hhm.prepare_trajectory.put('1')
         #uids.append(uid)
@@ -94,6 +95,7 @@ def tscanxia(name:str, comment:str, n_cycles:int=1, delay:float=0, **kwargs):
     --------
     :func:`tscan`
     """
+    ignore_shutter = kwargs.pop('ignore_shutter', False)
     sys.stdout = kwargs.pop('stdout', sys.stdout)
 
     #uids = []
@@ -107,7 +109,7 @@ def tscanxia(name:str, comment:str, n_cycles:int=1, delay:float=0, **kwargs):
             name_n = name + ' ' + str(i + 1)
         print('Current step: {} / {}'.format(i + 1, n_cycles))
         RE(prep_traj_plan())
-        uid, = RE(execute_xia_trajectory(name_n, comment=comment))
+        uid, = RE(execute_xia_trajectory(name_n, comment=comment, ignore_shutter=ignore_shutter))
         yield uid
         #uids.append(uid)
         time.sleep(float(delay))
@@ -154,7 +156,7 @@ def tscancam(name:str, comment:str, n_cycles:int=1, delay:float=0, **kwargs):
             name_n = name + ' ' + str(indx + 1)
         print('Current step: {} / {}'.format(indx + 1, n_cycles))
         RE(prep_traj_plan())
-        uid, = RE(execute_camera_trajectory(name_n, comment=comment))
+        uid, = RE(execute_camera_trajectory(name_n, comment=comment,))
         yield uid
         #uids.append(uid)
         time.sleep(float(delay))
