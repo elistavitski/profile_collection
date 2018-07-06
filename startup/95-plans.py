@@ -1,5 +1,10 @@
 import bluesky as bs
 import bluesky.plans as bp
+import bluesky.plan_stubs as bps
+import bluesky.preprocessors as bpp
+import bluesky.callbacks.fitting as bcf
+import uuid
+
 import time as ttime
 from subprocess import call
 import os
@@ -1098,3 +1103,90 @@ def set_gains_and_offsets_plan(*args):
         print('{}.offset -> {}'.format(ic.par.dev_name.value, lut_offsets[ic.par.dev_name.value][hs_str][str(val)]))
 
 
+def rel_goto_center(
+        detectors,
+        motor,
+        srange, num_steps=51,
+        *,
+        p_type='peak',
+        max_scans=3,
+        md=None,
+        field_name=None,
+        motor_name=None):
+    """Find a peak using the Eli Stavitski method
+
+      1. scan a relative range
+      2. find the peak / dip
+       a. if the peak is too close to the edge, adjust range by
+          half total range and repeat
+      3. move to extrema
+
+    This will generate 1 or more runs.
+
+    Parameters
+    ----------
+    detectors : List[Detectors]
+        List (typically just one) of the detectors to use in the scan.
+
+    motor : Positioner
+        The motor / positioner to scan
+
+    srange : float
+        The distance to move to either side of the current position
+
+    num_steps : int, optional
+        The number steps to take in the scan
+
+    p_type : {'peak', 'dip'}, optional
+        If we should look for a peak or a trough
+
+    field_name : str, optional
+        The field to maximize/minimize..
+
+        Defaults to the first hinted field in the detector.
+
+    motor_name : str, optional
+        Defaults to *motor.name*
+    """
+    field_name = (field_name
+                  if field_name is not None
+                  else detectors[0].hints['fields'][0])
+    motor_name = (motor_name
+                  if motor_name is not None
+                  else motor.name)
+
+    md = md or {}
+    md.setdefault('purpose', 'auto-alignment')
+    md.setdefault('alignment_group', str(uuid.uuid4()))
+    for j in range(max_scans):
+        # dirty hack to get the starting position
+        init_pos = motor.position
+        # set up the PeakStats object
+        ps = bcf.PeakStats(motor_name, field_name)
+        # wrap scan in subs_wrapper, we only want to use this PeakStats object once
+        ret = yield from bpp.subs_wrapper(
+            # wrap scan in a relative set (so search in relative to current location)
+            bpp.relative_set_wrapper(
+                bp.scan(detectors, motor, -srange, srange, num_steps, md=md),
+                [motor]),
+            [ps])
+        if ret is None:
+            # we are in 'simulation mode'
+            break
+
+        # pick if we want to look for the maximum or minimum
+        if p_type == 'peak':
+            location, value = ps.max
+        elif p_type == 'dip':
+            location, value = ps.min
+
+        # the location we get out of PeakStats is absolute
+        yield from bps.mv(motor, location)
+
+        # if we moved less than 80% of the search range, we are done
+        if np.abs((location - init_pos) / srange) < .8:
+            break
+    else:
+        # if we tried max_scans times and failed to find a min/max give up and raise
+        raise Exception(f"failed to find maxmimum in {max_scans} scans "
+                        f"of \N{PLUS-MINUS SIGN}{srange}")
