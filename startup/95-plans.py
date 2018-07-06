@@ -14,7 +14,6 @@ import signal
 from ophyd.device import Kind
 
 
-
 def energy_scan(start, stop, num, flyers=None, name='', **metadata):
     """
     Example
@@ -23,19 +22,23 @@ def energy_scan(start, stop, num, flyers=None, name='', **metadata):
     """
     if flyers is None:
         flyers = [pb9.enc1, pba2.adc6, pba1.adc7]
+
     def inner():
         md = {'plan_args': {}, 'plan_name': 'step scan', 'name': name}
         md.update(**metadata)
         yield from bps.open_run(md=md)
 
     # Start with a step scan.
-    plan = bp.scan([hhm_en.energy], hhm_en.energy, start, stop, num, md={'name': name})
+    plan = bp.scan([hhm_en.energy],
+                   hhm_en.energy, start, stop, num,
+                   md={'name': name})
     # Wrap it in a fly scan with the Pizza Box.
     plan = bpp.fly_during_wrapper(plan, flyers)
     # Working around a bug in fly_during_wrapper, stage and unstage the pizza box manually.
 
     for flyer in flyers:
         yield from bps.stage(flyer)
+
     yield from bps.stage(hhm)
 
     plan = bpp.pchain(plan)
@@ -50,6 +53,7 @@ def energy_multiple_scans(start, stop, repeats, name='', **metadata):
     >>> RE(energy_scan(11350, 11450, 2))
     """
     flyers = [pb9.enc1, pba2.adc6, pba1.adc7]
+
     def inner():
         md = {'plan_args': {}, 'plan_name': 'energy_multiple_scans', 'name': name}
         md.update(**metadata)
@@ -88,7 +92,7 @@ def get_offsets_plan(detectors, num = 1, name = '', **metadata):
     >>> RE(get_offset([pba1.adc1, pba1.adc6, pba1.adc7, pba2.adc6]))
     """
 
-    flyers = detectors 
+    flyers = detectors
 
     plan = bp.count(flyers, num, md={'plan_name': 'get_offset', 'name': name}, delay = 0.5)
 
@@ -108,17 +112,24 @@ def tune(detectors, motor, start, stop, num, name='', **metadata):
     >>> RE(tune([pba1.adc7], hhm.pitch,-2, 2, 5, ''), LivePlot('pba1.adc7_volt', 'hhm_pitch'))
     """
 
-    flyers = detectors 
+    flyers = detectors
 
     plan = bp.relative_scan(flyers, motor, start, stop, num, md={'plan_name': 'tune ' + motor.name, 'name': name})
-    
+
     if hasattr(flyers[0], 'kickoff'):
         plan = bpp.fly_during_wrapper(plan, flyers)
         plan = bpp.pchain(plan)
 
     yield from plan
 
-def get_xia_energy_grid(e0, preedge_start, xanes_start, xanes_end, exafs_end, preedge_spacing, xanes_spacing, exafsk_spacing, int_time_preedge = 1, int_time_xanes = 1, int_time_exafs = 1, k_power = 0):
+
+def get_xia_energy_grid(e0,
+                        preedge_start,
+                        xanes_start, xanes_end,
+                        exafs_end,
+                        preedge_spacing, xanes_spacing, exafsk_spacing,
+                        int_time_preedge=1, int_time_xanes=1, int_time_exafs=1,
+                        k_power=0):
     preedge = np.arange(e0 + preedge_start, e0 + xanes_start, preedge_spacing)
     preedge_int = np.ones(len(preedge)) * int_time_preedge
 
@@ -140,9 +151,10 @@ def get_xia_energy_grid(e0, preedge_start, xanes_start, xanes_end, exafs_end, pr
     integration_times = np.append(np.append(preedge_int, edge_int), np.array(exafs_int))
     grid = np.append(np.append(preedge, edge), postedge)
     return grid[::-1], integration_times
-    #return np.append(np.append(preedge, edge), postedge)
+    # return np.append(np.append(preedge, edge), postedge)
 
-def step_list_plan(detectors, motor, positions_grid, name = ''):
+
+def step_list_plan(detectors, motor, positions_grid, name=''):
     """
     Example
     -------
@@ -150,21 +162,21 @@ def step_list_plan(detectors, motor, positions_grid, name = ''):
     >>> Ni_positions_grid = xray.energy2encoder(Ni_energy_grid) / 360000
     >>> RE(step_list_plan([xia1, pba1.adc7], hhm.theta, Ni_positions_grid), LivePlot('xia1_mca1_roi0_sum', 'hhm_theta'))
     """
-    
+
     plan = bp.list_scan(detectors, motor, list(positions_grid), md={'name': name, 'plan_name': 'step_list_plan'})
-    
+
     flyers = []
     for det in detectors:
         if hasattr(det, 'kickoff'):
             flyers.append(det)
-            
+
     if len(flyers) > 0:
         plan = bpp.fly_during_wrapper(plan, flyers)
-        
-    yield from plan
-    
 
-    
+    yield from plan
+
+
+
 def step_xia_scan(motor, filename, energy_grid, integration_times = np.array([])):
     """
     Example
@@ -193,14 +205,16 @@ def step_xia_scan(motor, filename, energy_grid, integration_times = np.array([])
             xia1.real_time.put(integration_times[i])
         ttime.sleep(.005)
         motor.move(xray.energy2encoder(energy_grid[i])/360000)
-        while(np.abs(motor.read()['hhm_theta']['value'] - motor.read()['hhm_theta_user_setpoint']['value']) > 0.00001 or motor.moving == True):
+        while ((np.abs(motor.read()['hhm_theta']['value'] -
+                       motor.read()['hhm_theta_user_setpoint']['value']) > 0.00001)
+               or motor.moving):
             ttime.sleep(.005)
 
         xia1.erase_start.put(1)
         ttime.sleep(.1)
         while(xia1.acquiring.value):
             ttime.sleep(.005)
-        
+
         ttime.sleep(.1)
 
         i0_array.append([energy_grid[i], pba1.adc7.volt.value])
@@ -208,9 +222,9 @@ def step_xia_scan(motor, filename, energy_grid, integration_times = np.array([])
         xia1_chan2_array.append(xia1.mca_array2.value)
         xia1_chan3_array.append(xia1.mca_array3.value)
         xia1_chan4_array.append(xia1.mca_array4.value)
-        
+
     pba1.adc7.enable_sel.put(1)
-    
+
     np.savetxt('/GPFS/xf08id/xia_files/' + filename + '-i0', np.array(i0_array))
     np.savetxt('/GPFS/xf08id/xia_files/' + filename + '-1', np.array(xia1_chan1_array))
     np.savetxt('/GPFS/xf08id/xia_files/' + filename + '-2', np.array(xia1_chan2_array))
@@ -218,9 +232,9 @@ def step_xia_scan(motor, filename, energy_grid, integration_times = np.array([])
     np.savetxt('/GPFS/xf08id/xia_files/' + filename + '-4', np.array(xia1_chan4_array))
 
 def general_scan_plan(detectors, motor, rel_start, rel_stop, num):
-    
+
     plan = bp.relative_scan(detectors, motor, rel_start, rel_stop, num)
-    
+
     if hasattr(detectors[0], 'kickoff'):
         plan = bpp.fly_during_wrapper(plan, detectors)
 
@@ -234,10 +248,10 @@ def sampleXY_plan(detectors, motor, start, stop, num):
     >>> RE(sampleXY_plan([pba1.adc7], samplexy.x, -2, 2, 5, ''), LivePlot('pba1.adc7_volt', 'samplexy_x'))
     """
 
-    flyers = detectors 
+    flyers = detectors
 
     plan = bp.relative_scan(flyers, motor, start, stop, num)
-    
+
     if hasattr(flyers[0], 'kickoff'):
         plan = bpp.fly_during_wrapper(plan, flyers)
         # Check if I can remove bpp.pchain
@@ -248,6 +262,7 @@ def sampleXY_plan(detectors, motor, start, stop, num):
 def pb_scan_plan(detectors, motor, scan_center, scan_range, name = ''):
 
     flyers = detectors
+
     def inner():
         md = {'plan_args': {}, 'plan_name': 'pb_scan','experiment': 'pb_scan', 'name': name}
         #md.update(**metadata)
@@ -279,11 +294,15 @@ def pb_scan_plan(detectors, motor, scan_center, scan_range, name = ''):
 
 def prep_trajectory(delay = 1):
     hhm.prepare_trajectory.put("1")
+
     while (hhm.trajectory_ready.value == 0):
         ttime.sleep(.1)
+
     while (hhm.trajectory_ready.value == 1):
         ttime.sleep(.1)
+
     ttime.sleep(delay)
+
 
 def prep_traj_plan(delay = 0.1):
     yield from bps.abs_set(hhm.prepare_trajectory, '1', wait=True)
@@ -344,6 +363,7 @@ def execute_trajectory(name, **metadata):
     #flyers = [pb4.di, pba2.adc7, pba1.adc6, pb9.enc1, pba1.adc1, pba2.adc6, pba1.adc7]
     #flyers = [pba2.adc7, pba1.adc6, pb9.enc1, pba1.adc1, pba2.adc6, pba1.adc7]
     flyers = [pba2.adc7, pba1.adc6, pb9.enc1, pba1.adc1, pba2.adc6, pba1.adc7]
+
     def inner():
         interp_fn = f"{ROOT_PATH}/{USER_FILEPATH}/{RE.md['year']}.{RE.md['cycle']}.{RE.md['PROPOSAL']}/{name}.txt"
         curr_traj = getattr(hhm, 'traj{:.0f}'.format(hhm.lut_number_rbv.value))
@@ -398,9 +418,9 @@ def execute_trajectory(name, **metadata):
                 else:
                     break
 
-        yield from bpp.finalize_wrapper(poll_the_traj_plan(), 
-                                       bpp.pchain(shutter.close_plan(), 
-                                                 bps.abs_set(hhm.stop_trajectory, 
+        yield from bpp.finalize_wrapper(poll_the_traj_plan(),
+                                       bpp.pchain(shutter.close_plan(),
+                                                 bps.abs_set(hhm.stop_trajectory,
                                                             '1', wait=True)))
         #print('moving back')
         #hhm.prepare_trajectory.put('1')
@@ -525,9 +545,9 @@ def execute_camera_trajectory(name, **metadata):
                     break
 
 
-        yield from bpp.finalize_wrapper(poll_the_traj_plan(), 
-                                       bpp.pchain(shutter.close_plan(), 
-                                                 bps.abs_set(hhm.stop_trajectory, 
+        yield from bpp.finalize_wrapper(poll_the_traj_plan(),
+                                       bpp.pchain(shutter.close_plan(),
+                                                 bps.abs_set(hhm.stop_trajectory,
                                                             '1', wait=True)))
 
         yield from bps.close_run()
@@ -570,14 +590,14 @@ def execute_xia_trajectory(name, **metadata):
 
         interp_fn = f"{ROOT_PATH}/{USER_FILEPATH}/{RE.md['year']}.{RE.md['cycle']}.{RE.md['PROPOSAL']}/{name}.txt"
         curr_traj = getattr(hhm, 'traj{:.0f}'.format(hhm.lut_number_rbv.value))
-        md = {'plan_args': {}, 
+        md = {'plan_args': {},
               'plan_name': 'execute_xia_trajectory',
-              'experiment': 'fluorescence_sdd', 
+              'experiment': 'fluorescence_sdd',
               'name': name,
               'interp_filename': interp_fn,
               'xia_max_energy': xia1.mca_max_energy.value,
-              'xia_filename': '{}_{:03}.nc'.format(name, next_file_number), 
-              'xia_rois':xia_rois, 
+              'xia_filename': '{}_{:03}.nc'.format(name, next_file_number),
+              'xia_rois':xia_rois,
               'angle_offset': str(hhm.angle_offset.value),
               'trajectory_name': hhm.trajectory_name.value,
               'element': curr_traj.elem.value,
@@ -598,7 +618,7 @@ def execute_xia_trajectory(name, **metadata):
             fname = ''.join(chr(i) for i in list(xia1.netcdf_filename_rb.value))
             fname = name[0:len(fname) - 1]
             yield from bps.sleep(.05)
-       
+
         yield from shutter.open_plan()
         yield from bps.sleep(.5)
         yield from xia1.start_mapping_scan()
@@ -635,10 +655,10 @@ def execute_xia_trajectory(name, **metadata):
                     break
 
 
-        yield from bpp.finalize_wrapper(poll_the_traj_plan(), 
+        yield from bpp.finalize_wrapper(poll_the_traj_plan(),
                                        bpp.pchain(xia1.stop_scan(),
-                                                 shutter.close_plan(), 
-                                                 bps.abs_set(hhm.stop_trajectory, 
+                                                 shutter.close_plan(),
+                                                 bps.abs_set(hhm.stop_trajectory,
                                                             '1', wait=True)))
 
         yield from bps.close_run()
@@ -699,11 +719,11 @@ def execute_loop_trajectory(name, **metadata):
                 else:
                     break
 
-        yield from bpp.finalize_wrapper(poll_the_traj_plan(), 
-                                       bpp.pchain(shutter.close_plan(), 
-                                                 bps.abs_set(hhm.stop_trajectory, 
-                                                            '1', wait=True), 
-                                                 bps.abs_set(hhm.enable_loop, 
+        yield from bpp.finalize_wrapper(poll_the_traj_plan(),
+                                       bpp.pchain(shutter.close_plan(),
+                                                 bps.abs_set(hhm.stop_trajectory,
+                                                            '1', wait=True),
+                                                 bps.abs_set(hhm.enable_loop,
                                                             0, wait=True)))
 
         yield from bps.close_run()
@@ -1082,8 +1102,8 @@ def set_gains_and_offsets_plan(*args):
     if mod:
         args = args[:-mod]
 
-    for ic, val, hs in zip([ic for index, ic in enumerate(args) if index % 3 == 0], 
-                       [val for index, val in enumerate(args) if index % 3 == 1], 
+    for ic, val, hs in zip([ic for index, ic in enumerate(args) if index % 3 == 0],
+                       [val for index, val in enumerate(args) if index % 3 == 1],
                        [hs for index, hs in enumerate(args) if index % 3 == 2]):
         yield from ic.set_gain_plan(val, hs)
 
