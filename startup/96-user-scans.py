@@ -79,11 +79,13 @@ def tscan_plan(name: str, comment: str, n_cycles: int = 1, delay: float = 0, **k
     '''
 
     sys.stdout = kwargs.pop('stdout', sys.stdout)
-
+    n_cycles = int(n_cycles)
     print('Running tscan_plan')
     uids = []
-    for indx in range(int(n_cycles)):
-        name_n = '{} {:03d}'.format(name, indx + 1)
+    for indx in range(n_cycles):
+        name_n = name
+        if n_cycles>1:
+            name_n = '{} {:03d}'.format(name, indx + 1)
         print(name_n)
         yield from prep_traj_plan()
         uid = (yield from execute_trajectory(name_n, comment=comment))

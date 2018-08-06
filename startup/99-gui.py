@@ -1,4 +1,4 @@
-from isstools import xlive
+
 import collections
 import atexit
 import requests
@@ -103,38 +103,38 @@ ic_amplifiers = {'i0_amp': i0_amp,
                  'ir_amp': ir_amp,
                  'iff_amp': iff_amp}
 
-xlive_gui = xlive.XliveGui([tscan_plan, tscanxia_plan, tscancam_plan],
-                                 [get_offsets, sleep_seconds],
-                                 prep_traj_plan, 
-                                 RE,
-                                 db,
-                                 nsls_ii,
-                                 hhm,
-                                 shutters_dictionary,
-                                 detector_dictionary,
-                                 motors_dictionary,
-                                 general_scan,
-                                 test_motor = giantxy,
-                                 write_html_log = write_html_log,
-                                 auto_tune_elements = auto_tune,
-                                 ic_amplifiers = ic_amplifiers,
-                                 set_gains_offsets = set_gains_and_offsets,
-                                 prepare_bl = [prepare_bl_plan, prepare_bl_def],
-                                 sample_stages = sample_stages,
-                                 processing_sender = sender,
-                                 job_submitter=job_submitter,
-                                 bootstrap_servers=['cmb01:9092', 'cmb02:9092'],
-                                 kafka_topic="iss-processing", 
-                                 window_title="XLive @ISS/08-ID NSLS-II",
-                                 )
-
-
-def xlive():
-    xlive_gui.show()
-
-
-xlive()
-print('Startup complete')
+# xlive_gui = xlive.XliveGui([tscan_plan, tscanxia_plan, tscancam_plan],
+#                                  [get_offsets, sleep_seconds],
+#                                  prep_traj_plan,
+#                                  RE,
+#                                  db,
+#                                  nsls_ii,
+#                                  hhm,
+#                                  shutters_dictionary,
+#                                  detector_dictionary,
+#                                  motors_dictionary,
+#                                  general_scan,
+#                                  sample_stage = giantxy,
+#                                  write_html_log = write_html_log,
+#                                  auto_tune_elements = auto_tune,
+#                                  ic_amplifiers = ic_amplifiers,
+#                                  set_gains_offsets = set_gains_and_offsets,
+#                                  prepare_bl = [prepare_bl_plan, prepare_bl_def],
+#                                  sample_stages = sample_stages,
+#                                  processing_sender = sender,
+#                                  job_submitter=job_submitter,
+#                                  bootstrap_servers=['cmb01:9092', 'cmb02:9092'],
+#                                  kafka_topic="iss-processing",
+#                                  window_title="XLive @ISS/08-ID NSLS-II",
+#                                  )
+#
+#
+# def xlive():
+#     xlive_gui.show()
+#
+#
+# xlive()
+# print('Startup complete')
 
 sys.stdout = xlive_gui.emitstream_out
 sys.stderr = xlive_gui.emitstream_err
