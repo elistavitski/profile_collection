@@ -1,4 +1,4 @@
-
+from isstools import Xview
 import collections
 import atexit
 import requests
@@ -103,7 +103,7 @@ ic_amplifiers = {'i0_amp': i0_amp,
                  'ir_amp': ir_amp,
                  'iff_amp': iff_amp}
 
-# xlive_gui = xlive.XliveGui([tscan_plan, tscanxia_plan, tscancam_plan],
+# xlive_gui = Xlive.XliveGui([tscan_plan, tscanxia_plan, tscancam_plan],
 #                                  [get_offsets, sleep_seconds],
 #                                  prep_traj_plan,
 #                                  RE,
@@ -135,9 +135,16 @@ ic_amplifiers = {'i0_amp': i0_amp,
 #
 # xlive()
 # print('Startup complete')
+xview_gui = Xview.XviewGui(hhm.pulses_per_deg, db=db)
 
-sys.stdout = xlive_gui.emitstream_out
-sys.stderr = xlive_gui.emitstream_err
+def xview():
+    xview_gui.show()
+
+xview()
+print('Startup complete')
+
+#sys.stdout = xlive_gui.emitstream_out
+#sys.stderr = xlive_gui.emitstream_err
 
 
 #def cleaning():

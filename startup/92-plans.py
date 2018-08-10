@@ -85,7 +85,7 @@ def get_offsets_plan(detectors, num = 1, name = '', **metadata):
 
     flyers = detectors 
 
-    plan = bp.count(flyers, num, md={'plan_name': 'get_offset', 'name': name}, delay = 0.5)
+    plan = bp.count(flyers, num, md={'plan_name': 'get_offset'}, delay = 0.5)
 
     def set_offsets():
         for flyer in flyers:
